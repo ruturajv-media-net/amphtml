@@ -18,7 +18,7 @@ import {writeScript, validateData} from '../3p/3p';
 import {getSourceUrl} from '../src/url';
 
 
-const mandatoryParams = ['tagType', 'cid', 'crid'],
+const mandatoryParams = ['tagtype', 'cid', 'crid'],
   optionalParams = ['misc'];
 
 /**
@@ -29,7 +29,7 @@ export function medianet(global, data) {
   validateData(data, mandatoryParams, optionalParams);
 
   setAdditionalData(data);
-  if (data.tagType === 'sync') {
+  if (data.tagtype === 'sync') {
     loadSyncTag(global, data);
   }
 }
@@ -63,14 +63,13 @@ function loadSyncTag(global, data) {
   writeScript(global, url);
 }
 
-function setMacro(data, type, name) {
-  if (!type || !data) {
+function setMacro(data, type) {
+  if (!type) {
     return;
   }
-  name = name || type;
-  name = 'medianet_' + name;
+  type = 'medianet_' + type;
   if (data[type]) {
-    global[name] = data[type];
+    global[type] = data[type];
   }
 }
 
@@ -98,7 +97,7 @@ function setCallbacks(global) {
 
 }
 
-function setAdditionalData(data ) {
+function setAdditionalData(data) {
   data.requrl = global.context.canonicalUrl ||
       getSourceUrl(global.context.location.href);
   data.refurl = global.context.referrer;
