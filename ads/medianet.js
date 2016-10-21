@@ -67,9 +67,9 @@ function setMacro(data, type) {
   if (!type) {
     return;
   }
-  type = 'medianet_' + type;
+  const name = 'medianet_' + type;
   if (data[type]) {
-    global[type] = data[type];
+    global[name] = data[type];
   }
 }
 
