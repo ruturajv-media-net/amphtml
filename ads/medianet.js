@@ -18,14 +18,8 @@ import {writeScript, validateData} from '../3p/3p';
 import {getSourceUrl} from '../src/url';
 
 
-const mandatoryParams = ['tagType', 'cid'],
-  optionalParams = [
-    'crid',
-    'versionId',
-    'requrl',
-    'misc',
-    'refurl',
-  ];
+const mandatoryParams = ['tagType', 'cid', 'crid'],
+  optionalParams = ['misc'];
 
 /**
  * @param {!Window} global
@@ -34,13 +28,7 @@ const mandatoryParams = ['tagType', 'cid'],
 export function medianet(global, data) {
   validateData(data, mandatoryParams, optionalParams);
 
-  if (!data.requrl) {
-    data.requrl = global.context.canonicalUrl ||
-            getSourceUrl(global.context.location.href);
-  }
-  if (!data.refurl) {
-    data.refurl = global.context.referrer;
-  }
+  setAdditionalData(data);
   if (data.tagType === 'sync') {
     loadSyncTag(global, data);
   }
@@ -52,29 +40,25 @@ export function medianet(global, data) {
  */
 function loadSyncTag(global, data) {
     /*eslint "google-camelcase/google-camelcase": 0*/
-  if (!data.crid) {
-    return;
-  }
+
   let url = 'https://contextual.media.net/ampnmedianet.js?';
   url += 'cid=' + encodeURIComponent(data.cid);
   url += '&https=1';
   url += '&requrl=' + encodeURIComponent(data.requrl);
-  if (data.refurl) {
-    url += '&refurl=' + encodeURIComponent(data.refurl);
-    global.medianet_refurl = data.refurl;
-  }
-  if (data.misc) {
-    try {
-        global.medianet_misc = JSON.parse(data.misc);
-      } catch (e) {
-          global.medianet_misc = data.misc;
-        }
-  }
   setMacro(data, 'versionId');
   setMacro(data, 'requrl');
   setMacro(data, 'width');
   setMacro(data, 'height');
   setMacro(data, 'crid');
+
+  if (data.refurl) {
+    url += '&refurl=' + encodeURIComponent(data.refurl);
+    setMacro(data, 'refurl');
+  }
+
+  if (data.misc) {
+    setMacro(data, 'misc');
+  }
   setCallbacks(global);
   writeScript(global, url);
 }
@@ -97,6 +81,7 @@ function setCallbacks(global) {
   }
   function reportRenderedEntityIdentifierCb(ampId) {
     console.log('reported rendered entity' + ampId);
+    //check for id, and pass default if not available
     global.context.reportRenderedEntityIdentifier(ampId);
   }
   function noContentAvailableCb() {
@@ -111,4 +96,11 @@ function setCallbacks(global) {
   };
   global._mNAmp = callbacks;
 
+}
+
+function setAdditionalData(data ) {
+  data.requrl = global.context.canonicalUrl ||
+      getSourceUrl(global.context.location.href);
+  data.refurl = global.context.referrer;
+  data.versionId = '123'; //put correct id
 }
