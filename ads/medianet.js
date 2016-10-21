@@ -101,5 +101,5 @@ function setAdditionalData(data) {
   data.requrl = global.context.canonicalUrl ||
       getSourceUrl(global.context.location.href);
   data.refurl = global.context.referrer;
-  data.versionId = '123'; //put correct id
+  data.versionId = '211213';
 }
