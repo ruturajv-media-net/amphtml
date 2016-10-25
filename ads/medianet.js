@@ -111,7 +111,7 @@ function loadHBTag(global, data, publisherUrl, referrerUrl) {
     loadDFP();
   }, data.timeout || dfpDefaultTimeout);
 
-  computeInMasterFrame(global, 'mnet-hb-load', function(done) {
+  computeInMasterFrame(global, 'medianet-hb-load', function(done) {
     /*eslint "google-camelcase/google-camelcase": 0*/
     global.advBidxc_requrl = publisherUrl;
     global.advBidxc_refurl = referrerUrl;
