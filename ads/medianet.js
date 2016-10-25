@@ -122,7 +122,7 @@ function loadHBTag(global, data, publisherUrl, referrerUrl) {
     };
     global.advBidxc.renderAmpAd = () => {
     };
-    writeScript(global, 'https://contextual.media.net/bidexchange.js?amp=1&cid=' + encodeURIComponent(data.cid), () => {
+    writeScript(global, 'https://contextual.media.net/bidexchange.js?https=1&amp=1&cid=' + encodeURIComponent(data.cid), () => {
       done(null);
     });
   }, mnetHBHandle);
