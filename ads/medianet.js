@@ -14,92 +14,112 @@
  * limitations under the License.
  */
 
-import {writeScript, validateData} from '../3p/3p';
+import {writeScript, validateData, computeInMasterFrame} from '../3p/3p';
 import {getSourceUrl} from '../src/url';
+import {doubleclick} from '../ads/google/doubleclick';
 
-
-const mandatoryParams = ['tagtype', 'cid', 'crid'],
-  optionalParams = ['misc'];
+const mandatoryParams = ['tagtype', 'cid'],
+    optionalParams = [
+        'timeout',
+        'slot', 'targeting', 'categoryExclusions',
+        'tagForChildDirectedTreatment', 'cookieOptions',
+        'overrideWidth', 'overrideHeight', 'loadingStrategy',
+        'consentNotificationId', 'useSameDomainRenderingUntilDeprecated',
+        'experimentId', 'multiSize', 'multiSizeValidation',
+    ],
+    dfpParams = [
+        'slot', 'targeting', 'categoryExclusions',
+        'tagForChildDirectedTreatment', 'cookieOptions',
+        'overrideWidth', 'overrideHeight', 'loadingStrategy',
+        'consentNotificationId', 'useSameDomainRenderingUntilDeprecated',
+        'experimentId', 'multiSize', 'multiSizeValidation',
+    ],
+    dfpDefaultTimeout = 1000;
 
 /**
  * @param {!Window} global
  * @param {!Object} data
  */
 export function medianet(global, data) {
-  validateData(data, mandatoryParams, optionalParams);
+    validateData(data, mandatoryParams, optionalParams);
 
-  setAdditionalData(data);
-  if (data.tagtype === 'sync') {
-    loadSyncTag(global, data);
-  }
+    const publisherUrl = global.context.canonicalUrl ||
+            getSourceUrl(global.context.location.href),
+        referrerUrl = global.context.referrer;
+
+    if (data.tagtype === 'headerbidder') { //parameter tagtype is used to identify the product the publisher is using. Going ahead we plan to support more product types.
+        loadHBTag(global, data, publisherUrl, referrerUrl);
+    }
 }
 
 /**
  * @param {!Window} global
  * @param {!Object} data
+ * @param {!string} publisherUrl
+ * @param {?string} referrerUrl
  */
-function loadSyncTag(global, data) {
-    /*eslint "google-camelcase/google-camelcase": 0*/
+function loadHBTag(global, data, publisherUrl, referrerUrl) {
+    function deleteUnexpectedDoubleclickParams() {
+        const allParams = mandatoryParams.concat(optionalParams);
+        let currentParam = '';
+        for (let i = 0; i < allParams.length; i++) {
+            currentParam = allParams[i];
+            if (dfpParams.indexOf(currentParam) === -1 && data[currentParam]) {
+                delete data[currentParam];
+            }
+        }
+    }
 
-  let url = 'https://contextual.media.net/ampnmedianet.js?';
-  url += 'cid=' + encodeURIComponent(data.cid);
-  url += '&https=1';
-  url += '&requrl=' + encodeURIComponent(data.requrl);
-  setMacro(data, 'versionId');
-  setMacro(data, 'requrl');
-  setMacro(data, 'width');
-  setMacro(data, 'height');
-  setMacro(data, 'crid');
+    let isDoubleClickCalled = false;
+    function loadDFP() {
+        if (isDoubleClickCalled) {
+            return;
+        }
+        isDoubleClickCalled = true;
 
-  if (data.refurl) {
-    url += '&refurl=' + encodeURIComponent(data.refurl);
-    setMacro(data, 'refurl');
-  }
+        global.advBidxc = global.context.master.advBidxc;
+        if (global.advBidxc && typeof global.advBidxc.renderAmpAd === 'function') {
+            global.addEventListener('message', function(event) {
+                global.advBidxc.renderAmpAd(event, global);
+            });
+        }
 
-  if (data.misc) {
-    setMacro(data, 'misc');
-  }
-  setCallbacks(global);
-  writeScript(global, url);
-}
+        data.targeting = data.targeting || {};
 
-function setMacro(data, type) {
-  if (!type) {
-    return;
-  }
-  const name = 'medianet_' + type;
-  if (data[type]) {
-    global[name] = data[type];
-  }
-}
+        if (global.advBidxc &&
+            typeof global.advBidxc.setAmpTargeting === 'function') {
+            global.advBidxc.setAmpTargeting(global, data);
+        }
+        deleteUnexpectedDoubleclickParams();
+        doubleclick(global, data);
+    }
 
-function setCallbacks(global) {
-  function renderStartCb(opt_data) {
-    console.log('renderStartCalled');
-    global.context.renderStart(opt_data);
-  }
-  function reportRenderedEntityIdentifierCb(ampId) {
-    console.log('reported rendered entity' + ampId);
-    //check for id, and pass default if not available
-    global.context.reportRenderedEntityIdentifier(ampId);
-  }
-  function noContentAvailableCb() {
-    console.log('no content available called');
-    global.context.noContentAvailable();
-  }
+    function mnetHBHandle() {
+        global.advBidxc = global.context.master.advBidxc;
+        if (global.advBidxc &&
+            typeof global.advBidxc.registerAmpSlot === 'function') {
+            global.advBidxc.registerAmpSlot({
+                cb: loadDFP,
+                data,
+                winObj: global,
+            });
+        }
+    }
 
-  const callbacks = {
-    renderStartCb,
-    reportRenderedEntityIdentifierCb,
-    noContentAvailableCb,
-  };
-  global._mNAmp = callbacks;
+    global.setTimeout(function() {
+        loadDFP();
+    }, data.timeout || dfpDefaultTimeout);
 
-}
-
-function setAdditionalData(data) {
-  data.requrl = global.context.canonicalUrl ||
-      getSourceUrl(global.context.location.href);
-  data.refurl = global.context.referrer;
-  data.versionId = '211213';
+    computeInMasterFrame(global, 'mnet-hb-load', function(done) {
+        /*eslint "google-camelcase/google-camelcase": 0*/
+        global.advBidxc_requrl = publisherUrl;
+        global.advBidxc_refurl = referrerUrl;
+        global.advBidxc = {};
+        global.advBidxc.registerAmpSlot = () => {};
+        global.advBidxc.setAmpTargeting = () => {};
+        global.advBidxc.renderAmpAd = () => {};
+        writeScript(global, 'http://contextual.media.net/bidexchange.js?amp=1&cid=' + data.cid, () => {
+            done(null);
+        });
+    }, mnetHBHandle);
 }
