@@ -68,5 +68,5 @@ For an exhaustive list of updated parameters supported by DoubleClick refer to t
 ## Support 
 For further queries, please feel free to reach out to your contact at Media.net.
 
-Otherwise you can write to our support team: 
+Otherwise you can write to our support team:
 Email: <strong>pubsupport@media.net</strong>
