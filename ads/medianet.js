@@ -19,37 +19,37 @@ import {getSourceUrl} from '../src/url';
 import {doubleclick} from '../ads/google/doubleclick';
 
 const mandatoryParams = ['tagtype', 'cid'],
-    optionalParams = [
-        'timeout',
-        'slot', 'targeting', 'categoryExclusions',
-        'tagForChildDirectedTreatment', 'cookieOptions',
-        'overrideWidth', 'overrideHeight', 'loadingStrategy',
-        'consentNotificationId', 'useSameDomainRenderingUntilDeprecated',
-        'experimentId', 'multiSize', 'multiSizeValidation',
-    ],
-    dfpParams = [
-        'slot', 'targeting', 'categoryExclusions',
-        'tagForChildDirectedTreatment', 'cookieOptions',
-        'overrideWidth', 'overrideHeight', 'loadingStrategy',
-        'consentNotificationId', 'useSameDomainRenderingUntilDeprecated',
-        'experimentId', 'multiSize', 'multiSizeValidation',
-    ],
-    dfpDefaultTimeout = 1000;
+  optionalParams = [
+    'timeout',
+    'slot', 'targeting', 'categoryExclusions',
+    'tagForChildDirectedTreatment', 'cookieOptions',
+    'overrideWidth', 'overrideHeight', 'loadingStrategy',
+    'consentNotificationId', 'useSameDomainRenderingUntilDeprecated',
+    'experimentId', 'multiSize', 'multiSizeValidation',
+  ],
+  dfpParams = [
+    'slot', 'targeting', 'categoryExclusions',
+    'tagForChildDirectedTreatment', 'cookieOptions',
+    'overrideWidth', 'overrideHeight', 'loadingStrategy',
+    'consentNotificationId', 'useSameDomainRenderingUntilDeprecated',
+    'experimentId', 'multiSize', 'multiSizeValidation',
+  ],
+  dfpDefaultTimeout = 1000;
 
 /**
  * @param {!Window} global
  * @param {!Object} data
  */
 export function medianet(global, data) {
-    validateData(data, mandatoryParams, optionalParams);
+  validateData(data, mandatoryParams, optionalParams);
 
-    const publisherUrl = global.context.canonicalUrl ||
-            getSourceUrl(global.context.location.href),
-        referrerUrl = global.context.referrer;
+  const publisherUrl = global.context.canonicalUrl ||
+      getSourceUrl(global.context.location.href),
+    referrerUrl = global.context.referrer;
 
-    if (data.tagtype === 'headerbidder') { //parameter tagtype is used to identify the product the publisher is using. Going ahead we plan to support more product types.
-        loadHBTag(global, data, publisherUrl, referrerUrl);
-    }
+  if (data.tagtype === 'headerbidder') { //parameter tagtype is used to identify the product the publisher is using. Going ahead we plan to support more product types.
+    loadHBTag(global, data, publisherUrl, referrerUrl);
+  }
 }
 
 /**
@@ -59,67 +59,71 @@ export function medianet(global, data) {
  * @param {?string} referrerUrl
  */
 function loadHBTag(global, data, publisherUrl, referrerUrl) {
-    function deleteUnexpectedDoubleclickParams() {
-        const allParams = mandatoryParams.concat(optionalParams);
-        let currentParam = '';
-        for (let i = 0; i < allParams.length; i++) {
-            currentParam = allParams[i];
-            if (dfpParams.indexOf(currentParam) === -1 && data[currentParam]) {
-                delete data[currentParam];
-            }
-        }
+  function deleteUnexpectedDoubleclickParams() {
+    const allParams = mandatoryParams.concat(optionalParams);
+    let currentParam = '';
+    for (let i = 0; i < allParams.length; i++) {
+      currentParam = allParams[i];
+      if (dfpParams.indexOf(currentParam) === -1 && data[currentParam]) {
+        delete data[currentParam];
+      }
+    }
+  }
+
+  let isDoubleClickCalled = false;
+
+  function loadDFP() {
+    if (isDoubleClickCalled) {
+      return;
+    }
+    isDoubleClickCalled = true;
+
+    global.advBidxc = global.context.master.advBidxc;
+    if (global.advBidxc && typeof global.advBidxc.renderAmpAd === 'function') {
+      global.addEventListener('message', function(event) {
+        global.advBidxc.renderAmpAd(event, global);
+      });
     }
 
-    let isDoubleClickCalled = false;
-    function loadDFP() {
-        if (isDoubleClickCalled) {
-            return;
-        }
-        isDoubleClickCalled = true;
+    data.targeting = data.targeting || {};
 
-        global.advBidxc = global.context.master.advBidxc;
-        if (global.advBidxc && typeof global.advBidxc.renderAmpAd === 'function') {
-            global.addEventListener('message', function(event) {
-                global.advBidxc.renderAmpAd(event, global);
-            });
-        }
-
-        data.targeting = data.targeting || {};
-
-        if (global.advBidxc &&
-            typeof global.advBidxc.setAmpTargeting === 'function') {
-            global.advBidxc.setAmpTargeting(global, data);
-        }
-        deleteUnexpectedDoubleclickParams();
-        doubleclick(global, data);
+    if (global.advBidxc &&
+      typeof global.advBidxc.setAmpTargeting === 'function') {
+      global.advBidxc.setAmpTargeting(global, data);
     }
+    deleteUnexpectedDoubleclickParams();
+    doubleclick(global, data);
+  }
 
-    function mnetHBHandle() {
-        global.advBidxc = global.context.master.advBidxc;
-        if (global.advBidxc &&
-            typeof global.advBidxc.registerAmpSlot === 'function') {
-            global.advBidxc.registerAmpSlot({
-                cb: loadDFP,
-                data,
-                winObj: global,
-            });
-        }
+  function mnetHBHandle() {
+    global.advBidxc = global.context.master.advBidxc;
+    if (global.advBidxc &&
+      typeof global.advBidxc.registerAmpSlot === 'function') {
+      global.advBidxc.registerAmpSlot({
+        cb: loadDFP,
+        data,
+        winObj: global,
+      });
     }
+  }
 
-    global.setTimeout(function() {
-        loadDFP();
-    }, data.timeout || dfpDefaultTimeout);
+  global.setTimeout(function() {
+    loadDFP();
+  }, data.timeout || dfpDefaultTimeout);
 
-    computeInMasterFrame(global, 'mnet-hb-load', function(done) {
-        /*eslint "google-camelcase/google-camelcase": 0*/
-        global.advBidxc_requrl = publisherUrl;
-        global.advBidxc_refurl = referrerUrl;
-        global.advBidxc = {};
-        global.advBidxc.registerAmpSlot = () => {};
-        global.advBidxc.setAmpTargeting = () => {};
-        global.advBidxc.renderAmpAd = () => {};
-        writeScript(global, 'https://contextual.media.net/bidexchange.js?amp=1&cid=' + encodeURIComponent(data.cid), () => {
-            done(null);
-        });
-    }, mnetHBHandle);
+  computeInMasterFrame(global, 'mnet-hb-load', function(done) {
+    /*eslint "google-camelcase/google-camelcase": 0*/
+    global.advBidxc_requrl = publisherUrl;
+    global.advBidxc_refurl = referrerUrl;
+    global.advBidxc = {};
+    global.advBidxc.registerAmpSlot = () => {
+    };
+    global.advBidxc.setAmpTargeting = () => {
+    };
+    global.advBidxc.renderAmpAd = () => {
+    };
+    writeScript(global, 'https://contextual.media.net/bidexchange.js?amp=1&cid=' + encodeURIComponent(data.cid), () => {
+      done(null);
+    });
+  }, mnetHBHandle);
 }
