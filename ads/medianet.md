@@ -1,5 +1,5 @@
 <!---
-Copyright 2015 The AMP HTML Authors. All Rights Reserved.
+Copyright 2016 The AMP HTML Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,40 +15,58 @@ limitations under the License.
 -->
 
 # Media.net
-The medianet controller supports two types of creatives: <br/>1.Basic keyword/direct ad unit. <br/>2.Header bidder tag.
 
-## Examples
-### Keyword Tag
-```html
-  <amp-ad width=300 height=250
-            type="medianet"
-            data-tag-type="sync"
-            data-crid="881912246"
-            data-version-id="111299"
-            data-cid="8CU5Q6ABI">
-  </amp-ad>
+Media.net adapter supports the integration of its Header Bidding solution with the publisher website using DoubleClick for Publishers (DFP) as the Ad Server. The example listed below states the configuration and the implementation related details.
+
+
+## Example
+
+### Media.net Header Bidder 
+
+``` html
+<amp-ad width="300" height="250"
+    type="medianet"
+    data-tagtype="headerbidder"
+    data-cid="8CU852274"
+    data-slot="/45361917/AMP_Header_Bidder"
+    json='{"targeting":{"mnetAmpTest":"1","pos":"mnetSlot1"}}'>
+</amp-ad>
+
 ```
-### Header Bidder Tag
-```html
-  <amp-ad width="300" height="250"
-                  type="medianet"
-                  data-cid="8CU759V58"
-                  data-tag-type="hb"
-                  data-slot="/45361917/8CUR5RQW9-ampTest"
-                  json='{"targeting":{"mnetAmpTest":"1","mnet_placement":"rec"}}'
-                  data-position="rec">
-  </amp-ad>
-```
+
 ## Configuration
-###Supported parameters:
-####Mandatory(for both keyword and header bidder):
-- data-cid: Media.net customer id
-- data-tag-type: "sync" for keyword tag, "hb" for header bidder tag
 
-####Keyword Tag
-- data-version-id: siteid given by mediaimpact
-- data-crid: pageName given by mediaimpact
-####Header Bidder Tag
+### Dimensions
+ 
+The ad size depends on the ``width`` and ``height`` attributes specified in the ``amp-ad`` tag. The ``amp-ad`` component requires the following mandatory HTML attributes to be added before parsing the Ad.
+  
+ * ``width`` 
+ * ``height`` 
+ * ``type = "medianet"``
 
-for further information regarding this implementation please contact adtechnology@axelspringer.de 
-or visit http://www.mediaimpact.de/ Todo 
+For further configuration related details, please feel free to reach out to your Media.net contact.
+
+## Supported Parameters 
+
+###Media.net Header Bidder
+
+<strong>Mandatory Parameters</strong>
+ 
+* ``data-tagtype`` - This parameter represents the product the publisher is using; It should be <strong>headerbidder</strong> for our Header Bidding solution.
+* ``data-cid`` - Represents the unique customer identifier.
+* ``data-slot`` - Ad unit as specified in DFP
+
+
+<strong>Some of the parameters supported via Json attribute (DFP Parameters)</strong>
+
+* ``targeting``
+* ``categoryExclusions``
+
+For an exhaustive list of updated parameters supported by DoubleClick refer to the guide - [here](google/doubleclick.md).
+
+
+## Support 
+For further queries, please feel free to reach out to your contact at Media.net.
+
+Otherwise you can write to our support team: 
+Email: <strong>pubsupport@media.net</strong>
